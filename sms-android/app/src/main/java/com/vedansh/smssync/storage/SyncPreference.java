@@ -8,22 +8,50 @@ public class SyncPreference {
     private static final String PREF_NAME = "sms_sync_pref";
     private static final String LAST_SYNC = "last_sync";
 
-    public static void saveLastSync(Context context, long timestamp) {
+    public static void saveLastSync(
+            Context context,
+            long timestamp) {
 
         SharedPreferences pref =
-                context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+                context.getSharedPreferences(
+                        PREF_NAME,
+                        Context.MODE_PRIVATE
+                );
 
         pref.edit()
                 .putLong(LAST_SYNC, timestamp)
                 .apply();
     }
 
-    public static long getLastSync(Context context) {
+    public static long getLastSync(
+            Context context) {
 
         SharedPreferences pref =
-                context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+                context.getSharedPreferences(
+                        PREF_NAME,
+                        Context.MODE_PRIVATE
+                );
 
-        return pref.getLong(LAST_SYNC, 0);
+        return pref.getLong(
+                LAST_SYNC,
+                0
+        );
     }
 
+    /*
+     * Used only for testing.
+     */
+    public static void resetLastSync(
+            Context context) {
+
+        SharedPreferences pref =
+                context.getSharedPreferences(
+                        PREF_NAME,
+                        Context.MODE_PRIVATE
+                );
+
+        pref.edit()
+                .remove(LAST_SYNC)
+                .apply();
+    }
 }

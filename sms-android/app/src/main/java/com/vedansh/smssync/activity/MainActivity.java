@@ -10,7 +10,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.vedansh.smssync.R;
-import com.vedansh.smssync.filter.BankSmsFilter;
 import com.vedansh.smssync.model.SmsModel;
 import com.vedansh.smssync.service.SmsReaderService;
 import com.vedansh.smssync.service.SmsUploadService;

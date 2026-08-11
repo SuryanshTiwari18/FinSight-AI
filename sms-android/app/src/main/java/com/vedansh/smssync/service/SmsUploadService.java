@@ -19,40 +19,63 @@ public class SmsUploadService {
     private final Context context;
 
     public SmsUploadService(Context context) {
-        this.context = context.getApplicationContext();
+
+        this.context =
+                context.getApplicationContext();
     }
 
-    public void uploadSmsList(List<SmsModel> smsList) {
+    public void uploadSmsList(
+            List<SmsModel> smsList) {
 
-        if (smsList == null || smsList.isEmpty()) {
+        if (smsList == null ||
+                smsList.isEmpty()) {
 
             Log.d(
                     "SMS_SYNC",
-                    "No new SMS to upload"
+                    "NO NEW SMS TO UPLOAD"
             );
 
             return;
         }
 
-        uploadNextSms(smsList, 0);
+        Log.d(
+                "SMS_UPLOAD",
+                "TOTAL SMS TO UPLOAD = "
+                        + smsList.size()
+        );
+
+        uploadNextSms(
+                smsList,
+                0
+        );
     }
 
     private void uploadNextSms(
             List<SmsModel> smsList,
             int index) {
 
-        // All SMS have been uploaded
+        /*
+         * Everything finished.
+         */
         if (index >= smsList.size()) {
 
             Log.d(
+                    "SMS_UPLOAD",
+                    "ALL SMS UPLOADED SUCCESSFULLY"
+            );
+
+            Log.d(
                     "SMS_SYNC",
-                    "All SMS uploaded successfully"
+                    "FINAL LAST SYNC = "
+                            + SyncPreference
+                            .getLastSync(context)
             );
 
             return;
         }
 
-        SmsModel sms = smsList.get(index);
+        SmsModel sms =
+                smsList.get(index);
 
         Log.d(
                 "SMS_UPLOAD",
@@ -62,93 +85,113 @@ public class SmsUploadService {
                         + smsList.size()
                         + " : "
                         + sms.getSender()
+                        + " | "
+                        + sms.getTimestamp()
         );
 
-        RetrofitClient.getApiService()
+        RetrofitClient
+                .getApiService()
                 .uploadSms(sms)
-                .enqueue(new Callback<SmsResponse>() {
+                .enqueue(
+                        new Callback<SmsResponse>() {
 
-                    @Override
-                    public void onResponse(
-                            Call<SmsResponse> call,
-                            Response<SmsResponse> response) {
+                            @Override
+                            public void onResponse(
+                                    Call<SmsResponse> call,
+                                    Response<SmsResponse> response) {
 
-                        if (response.isSuccessful()) {
+                                if (!response.isSuccessful()) {
 
-                            Log.d(
-                                    "SMS_UPLOAD",
-                                    "SUCCESS: "
-                                            + sms.getSender()
-                            );
+                                    Log.e(
+                                            "SMS_UPLOAD",
+                                            "HTTP ERROR = "
+                                                    + response.code()
+                                    );
 
-                            /*
-                             * Save lastSync ONLY after
-                             * successful server response.
-                             */
-                            long currentLastSync =
-                                    SyncPreference.getLastSync(context);
+                                    Log.e(
+                                            "SMS_SYNC",
+                                            "SYNC STOPPED"
+                                    );
 
-                            if (sms.getTimestamp()
-                                    > currentLastSync) {
+                                    return;
+                                }
 
-                                SyncPreference.saveLastSync(
-                                        context,
-                                        sms.getTimestamp()
+                                /*
+                                 * Server accepted SMS.
+                                 */
+                                Log.d(
+                                        "SMS_UPLOAD",
+                                        "SUCCESS: "
+                                                + sms.getSender()
                                 );
 
-                                Log.d(
-                                        "SMS_SYNC",
-                                        "LAST SYNC SAVED = "
-                                                + sms.getTimestamp()
+                                /*
+                                 * IMPORTANT:
+                                 *
+                                 * Update lastSync ONLY
+                                 * after successful upload.
+                                 */
+                                long currentLastSync =
+                                        SyncPreference
+                                                .getLastSync(
+                                                        context
+                                                );
+
+                                if (sms.getTimestamp()
+                                        > currentLastSync) {
+
+                                    SyncPreference.saveLastSync(
+                                            context,
+                                            sms.getTimestamp()
+                                    );
+
+                                    Log.d(
+                                            "SMS_SYNC",
+                                            "LAST SYNC UPDATED = "
+                                                    + sms.getTimestamp()
+                                    );
+                                }
+
+                                /*
+                                 * Continue only after success.
+                                 */
+                                uploadNextSms(
+                                        smsList,
+                                        index + 1
                                 );
                             }
 
-                            /*
-                             * Upload next SMS only after
-                             * this SMS was successful.
-                             */
-                            uploadNextSms(
-                                    smsList,
-                                    index + 1
-                            );
+                            @Override
+                            public void onFailure(
+                                    Call<SmsResponse> call,
+                                    Throwable t) {
 
-                        } else {
+                                Log.e(
+                                        "SMS_UPLOAD",
+                                        "NETWORK ERROR: "
+                                                + t.getMessage()
+                                );
 
-                            Log.e(
-                                    "SMS_UPLOAD",
-                                    "FAILED: HTTP "
-                                            + response.code()
-                                            + " for "
-                                            + sms.getSender()
-                            );
+                                Log.e(
+                                        "SMS_SYNC",
+                                        "SYNC STOPPED"
+                                );
 
-                            /*
-                             * Stop here.
-                             *
-                             * lastSync is NOT changed.
-                             */
+                                Log.e(
+                                        "SMS_SYNC",
+                                        "LAST SYNC REMAINS = "
+                                                + SyncPreference
+                                                .getLastSync(context)
+                                );
+
+                                /*
+                                 * DO NOT:
+                                 *
+                                 * - update lastSync
+                                 * - upload next SMS
+                                 */
+                            }
                         }
-                    }
-
-                    @Override
-                    public void onFailure(
-                            Call<SmsResponse> call,
-                            Throwable t) {
-
-                        Log.e(
-                                "SMS_UPLOAD",
-                                "NETWORK ERROR for "
-                                        + sms.getSender()
-                                        + " : "
-                                        + t.getMessage()
-                        );
-
-                        /*
-                         * Stop here.
-                         *
-                         * lastSync is NOT changed.
-                         */
-                    }
-                });
+                );
     }
 }

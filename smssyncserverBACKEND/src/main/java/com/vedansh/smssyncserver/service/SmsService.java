@@ -18,7 +18,6 @@ public class SmsService {
         SmsEntity entity = SmsMapper.toEntity(request);
 
         repository.save(entity);
-
     }
 
 }
